@@ -4,10 +4,11 @@ module.exports = {
     extend: {
       fontFamily : {
         'montserrat' : ['Montserrat','sans-serif'],
-        'mulish' : ['Mulish','sans-serif'],
+        'mulish' : ['Mulish', 'sans-serif'],
         'poppins' : ['Poppins','sans-serif'],
       },
       fontSize : {
+        '9px' : '9px',
         '10px' : '10px',
       },
       boxShadow : {
@@ -21,14 +22,20 @@ module.exports = {
       colors : {
         'primary' : '#EB5757',
         'primary-opaque' : 'rgba(235, 87, 87, 0.72)',
+        'primary-opaque-2' : 'rgba(235, 87, 87, 0.9)',
         'secondary' : '#4F4F4F',
         'tertiary' : '#828282',
         'gray-1' : '#BDBDBD',
+        'black-1' : '#333333',
         'off-white' : '#F2F2F2',
+        'gray-2' : '#A9A9A9',
       },
       spacing : {
         '33' : '9rem',
         '90' : '90%',
+      },
+      height : {
+        '80vh' : '80vh', 
       }
     },
   },

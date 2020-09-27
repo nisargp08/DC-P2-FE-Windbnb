@@ -1,6 +1,6 @@
 <template>
 <div id="app">
-    <div class="min-h-screen">
+    <div class="min-h-screen flex flex-col">
         <!-- Logo -->
         <div class="pt-4 pl-3">
             <svg width="97" height="26" viewBox="0 0 97 26" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -9,42 +9,137 @@
             </svg>
         </div>
         <!-- Search Box -->
-        <div class="mt-10">
-            <div class="flex items-center justify-center mx-auto w-90 rounded-16px bg-white shadow-white ">
-                <!-- Location -->
-                <input class="w-33 border-r border-off-white p-4 font-mulish font-normal leading-4 text-sm text-black" type="text" value="Helsinki,Finland">
-                <!-- Guests -->
-                <input class="w-32 border-r border-off-white p-4 font-mulish font-normal leading-4 text-sm text-gray-1" type="text" placeholder="Add guests">
-                <!-- Search button -->
-                <button class="p-4">
-                    <svg class="w-6 h-6 fill-current text-primary" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
-                </button>
+        <div @click.prevent="toggleMenu" class="mt-10 cursor-pointer max-w-sm mx-auto">
+            <div class="flex items-center justify-center mx-10 rounded-16px shadow-white bg-white">
+                <p class="flex-1 border-r border-off-white p-4 font-mulish font-normal leading-4 text-sm text-black-1">{{ currentLocation }}</p>
+                <p class="border-r border-off-white p-4 font-mulish font-normal leading-4 text-sm text-gray-1">{{ currentGuests }}</p>
+                <div class="p-4">
+                    <svg class="w-4 h-4 fill-current text-primary" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                    </svg>
+                </div>
             </div>
         </div>
+        <!-- Search window backdrop -->
+        <div v-if="isOpen" @click="toggleMenu()" class="absolute inset-0 h-screen"></div>
+        <!-- Search Window -->
+        <transition name="fade" mode="out-in">
+            <div v-if="isOpen" class="absolute left-0 top-0 right-0 h-80vh bg-white">
+                <div class="flex flex-col h-full p-6">
+                    <div class="flex items-center justify-between">
+                        <p class="font-mulish font-bold text-xs leading-4 text-black-1">Edit your search</p>
+                        <button @click="toggleMenu" class="focus:outline-none">
+                            <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="flex-1">
+                        <div class="shadow-white rounded-16px mt-4">
+                            <div :class="{ 'border-primary-opaque-2 border-2 rounded-16px' : isLocationOpen }" ref="locationFilter" @click="isLocationOpen = true" class="py-3 px-6">
+                                <label class="block font-mulish font-extrabold text-9px leading-3 uppercase" for="location">location</label>
+                                <input v-model="location" placeholder="Search Location" class="block font-mulish font-normal leading-4 text-sm text-black-1 w-full focus:outline-none mt-1" type="text" id="location">
+                            </div>
+                            <hr class="border-off-white border-0">
+                            <div :class="{ 'border-primary-opaque-2 border-2 rounded-16px' : isGuestOpen }" ref="guestFilter" @click="isGuestOpen = true" class="py-3 px-6">
+                                <label class="block font-mulish font-extrabold text-9px leading-3 uppercase" for="guests">guests</label>
+                                <p class="block font-mulish font-normal leading-4 text-sm text-gray-1 w-full focus:outline-none mt-1" placeholder="Add guests">{{ currentGuests }}</p>
+                            </div>
+                        </div>
+                        <div v-if="location != '' || (adultGuests + childrenGuests > 0)" class="mt-2 text-right">
+                            <button @click="clearFilter" class="inline-flex items-center ml-auto bg-primary rounded-md py-2 px-4 focus:outline-none">
+                                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span class="font-mulish font-extrabold text-white text-10px leading-3 uppercase ml-1">clear</span>
+                            </button>
+                        </div>
+                        <div class="ml-6 mt-10">
+                            <!-- Location Suggestion -->
+                            <div ref="locationFilterOptions">
+                                <div v-if="isLocationOpen">
+                                    <div @click="setLocation(location)" v-for="(location,index) in getPropertyLocations" :key="index" class="flex items-center gap-2 py-5 rounded-lg hover:bg-gray-200 cursor-pointer">
+                                        <svg class="w-6 h-6 fill-current text-secondary" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                        </svg>
+                                        <p class="font-mulish font-normal text-sm leading-4 text-secondary">{{location}}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Guest Suggestion -->
+                            <div ref="guestFilterOptions">
+                                <div v-if="isGuestOpen">
+                                    <div class="mt-12">
+                                        <p class="font-mulish font-bold text-sm leading-4 text-black">Adults</p>
+                                        <p class="font-mulish font-normal text-xs leading-4 text-gray-1 mt-1">Ages 13 or above</p>
+                                        <div class="flex items-center mt-3">
+                                            <button @click="decrementAdult()" class="border border-tertiary rounded px-2 text-tertiary">-</button>
+                                            <p class="font-mulish font-bold text-sm leading-4 text-black w-12 text-center">{{ adultGuests }}</p>
+                                            <button @click="incrementAdult()" class="border border-tertiary rounded px-2 text-tertiary">+</button>
+                                        </div>
+                                    </div>
+                                    <div class="mt-12">
+                                        <p class="font-mulish font-bold text-sm leading-4 text-black">Children</p>
+                                        <p class="font-mulish font-normal text-xs leading-4 text-gray-1 mt-1">Ages 2-12</p>
+                                        <div class="flex items-center mt-3">
+                                            <button @click="decrementChildren()" class="border border-tertiary rounded px-2 text-tertiary">-</button>
+                                            <p class="font-mulish font-bold text-sm leading-4 text-black w-12 text-center">{{ childrenGuests }}</p>
+                                            <button @click="incrementChildren()" class="border border-tertiary rounded px-2 text-tertiary">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mx-auto">
+                        <button @click="toggleMenu()" class="bg-primary-opaque-2 shadow-white rounded-16px py-4 px-6 focus:outline-none">
+                            <svg class="inline-block w-6 h-6 fill-current text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="inline-block ml-3 text-white font-mulish font-bold text-sm leading-4 text-off-white">Search</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </transition>
 
         <!-- Property Info Heading -->
         <div class="flex items-center justify-between mt-8 px-3">
             <h3 class="font-montserrat font-bold text-lg text-black leading-5">Stays in Finland</h3>
-            <p class="font-montserrat font-medium text-sm leading-4 text-secondary">12+ stays</p>
+            <p class="font-montserrat font-medium text-sm leading-4 text-secondary">{{filteredProperty.length}} stays</p>
         </div>
         <!-- Properties -->
-        <div v-for="(property,index) in properties" :key="index" class="my-6 px-3">
-            <img class="rounded-24px" :src="property.photo" :alt="property.title">
-            <div class="flex items-center justify-between pt-4">
-                <div class="flex items-center gap-2">
-                    <p v-if="property.superHost" class="font-montserrat font-bold text-10px leading-3 py-2 px-3 border border-secondary rounded-12px uppercase">super host</p>
-                    <p class="font-montserrat font-medium text-xs leading-4 text-tertiary">{{ property.type }} <span class="dot">.</span> {{ property.beds}} beds </p>
+        <template v-if="filteredProperty.length > 0">
+            <div v-for="(property,index) in filteredProperty" :key="index" class="my-6 px-3 flex-1">
+                <img class="rounded-24px" :src="property.photo" :alt="property.title">
+                <div class="flex items-center justify-between pt-4">
+                    <div class="flex items-center gap-2">
+                        <p v-if="property.superHost" class="font-montserrat font-bold text-10px leading-3 py-2 px-3 border border-secondary rounded-12px uppercase">super host</p>
+                        <p class="font-montserrat font-medium text-xs leading-4 text-tertiary">{{ property.type }} <span class="dot">.</span> {{ property.beds}} beds </p>
+                    </div>
+                    <div class="flex items-center">
+                        <svg class="w-4 h-4 fill-current text-primary-opaque" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <p class="font-montserrat font-medium text-xs leading-4 text-secondary ml-1 ">{{ property.rating }}</p>
+                    </div>
                 </div>
-                <div class="flex items-center">
-                    <svg class="w-4 h-4 fill-current text-primary-opaque" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                    </svg>
-                    <p class="font-montserrat font-medium text-xs leading-4 text-secondary">{{ property.rating }}</p>
-                </div>
+                <p class="font-montserrat font-medium text-xs leading-4 text-black pt-2">{{ property.title }}</p>
             </div>
-            <p class="font-montserrat font-medium text-xs leading-4 text-black pt-2">{{ property.title }}</p>
-        </div>
+        </template>
+        <!-- When no properties found -->
+        <template v-else>
+            <div class="flex-1 mt-10">
+                <img src="@/assets/images/404.png" alt="No results">
+                <h3 class="font-montserrat text-lg text-primary-opaque-2 leading-5 text-center my-10 w-3/4 m-auto">No results found matching search parameters</h3>
+            </div>
+        </template>
+
+        <!-- Footer -->
+        <footer class="flex flex-col items-center justify-center mt-10">
+            <div class="border-t border-gray-1 w-64"></div>
+            <p class="font-montserrat font-bold text-sm text-gray-2 leading-4 text-center mt-2 mb-4">Nisarg Patel @ Devchalleges.io</p>
+        </footer>
     </div>
 </div>
 </template>
@@ -54,6 +149,15 @@ export default {
     name: 'App',
     data() {
         return {
+            isOpen: false,
+            //Filter open tracker
+            isLocationOpen: false,
+            isGuestOpen: false,
+            //Guest counter
+            adultGuests: 0,
+            childrenGuests: 0,
+            //Current search parameter
+            location: '',
             properties: [{
                     "city": "Helsinki",
                     "country": "Finland",
@@ -211,7 +315,124 @@ export default {
             ]
         }
     },
-    components: {}
+    components: {},
+    mounted() {
+        //Click listener to listen for clicks outside the filter elements area
+        document.addEventListener('click', this.filterDisplay, false);
+    },
+    beforeDestroy() {
+        //Removing added listener before destroy
+        document.removeEventListener('click', () => {});
+    },
+    methods: {
+        toggleMenu() {
+            //To toggle open and close state of the menu
+            this.isOpen = !this.isOpen;
+        },
+        setLocation(location) {
+            //Sets the location to the selected location by the user
+            this.location = location;
+        },
+        filterDisplay(event) {
+            //To display options according to currently active filter option(location,guest)
+            if (this.isLocationOpen) {
+                let locationFilter = this.$refs.locationFilter;
+                let locationFilterOptions = this.$refs.locationFilterOptions;
+
+                if(!(event.path.indexOf(locationFilter) != -1 || event.path.indexOf(locationFilterOptions) != -1)){
+                    this.isLocationOpen = false;
+                }
+            }
+            if (this.isGuestOpen) {
+                let guestFilter = this.$refs.guestFilter;
+                let guestFilterOptions = this.$refs.guestFilterOptions;
+
+                if(!(event.path.indexOf(guestFilter) != -1 || event.path.indexOf(guestFilterOptions) != -1)){
+                    this.isGuestOpen = false;
+                }
+            }
+        },
+        incrementAdult() {
+            //Increment adult guest counter
+            this.adultGuests++;
+        },
+        decrementAdult() {
+            //decrement adult guest counter
+            if (this.adultGuests > 0) {
+                this.adultGuests--;
+            }
+        },
+        incrementChildren() {
+            //Increment children guest counter
+            this.childrenGuests++;
+        },
+        decrementChildren() {
+            //decrement children guest counter
+            if (this.childrenGuests > 0) {
+                this.childrenGuests--;
+            }
+        },
+        clearFilter() {
+            //To clear the filter if selected
+            this.location = '';
+            this.adultGuests = this.childrenGuests = 0;
+        }
+    },
+    computed: {
+        currentLocation() {
+            //Return current location
+            if (this.location != '') {
+                return this.location;
+            } else {
+                return 'Search Location';
+            }
+        },
+        currentGuests() {
+            //Return current Guests
+            if (this.adultGuests + this.childrenGuests > 0) {
+                return this.adultGuests + this.childrenGuests + ' guests';
+            } else {
+                return 'Add guests';
+            }
+        },
+        getPropertyLocations() {
+            //Unique location list
+            const locationList = [];
+            //To get unique property locations for user suggestions
+            this.properties.forEach(property => {
+                let location = `${property.city},${property.country}`;
+                //If index not found then store the location else it already exists in the array
+                if (locationList.indexOf(location) == -1) {
+                    locationList.push(location);
+                }
+            });
+            return locationList;
+        },
+        filteredProperty() {
+            let filteredProperties = [];
+            //If search parameters not empty then filter array
+            if (this.location != "" || (this.adultGuests + this.childrenGuests) > 0) {
+                this.properties.forEach(property => {
+                    let propertyLocation = `${property.city},${property.country}`;
+                    if (this.location != "") {
+                        if (propertyLocation == this.location && (property.maxGuests) >= (this.adultGuests + this.childrenGuests)) {
+                            //Search city and country matches - store result
+                            filteredProperties.push(property);
+                        }
+                    } else {
+                        if (property.maxGuests >= (this.adultGuests + this.childrenGuests)) {
+                            //Max guests matches
+                            filteredProperties.push(property);
+                        }
+                    }
+                });
+                return filteredProperties;
+            } else {
+                //Return all properties
+                return this.properties;
+            }
+        }
+    }
 }
 </script>
 
@@ -219,5 +440,18 @@ export default {
 #app {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity .5s;
+}
+
+.fade-enter,
+.fade-leave-to
+
+/* .fade-leave-active below version 2.1.8 */
+    {
+    opacity: 0;
 }
 </style>
