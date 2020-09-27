@@ -29,12 +29,14 @@ module.exports = {
         'black-1' : '#333333',
         'off-white' : '#F2F2F2',
         'gray-2' : '#A9A9A9',
+        'backdrop' : 'rgba(79, 79, 79, 0.4)',
       },
       spacing : {
         '33' : '9rem',
         '90' : '90%',
       },
       height : {
+        '60vh' : '60vh', 
         '80vh' : '80vh', 
       }
     },
